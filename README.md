@@ -300,16 +300,4 @@ git diff --stat HEAD~1 HEAD
 
 - Windows 11 / Python 3.13.7
 - numpy 2.5.0, scipy 1.18.1, scikit-image 0.26.0, pandas 3.0.6, matplotlib 3.11.0
-- CPU: AMD Ryzen 7 8845H；GPU: NVIDIA RTX 4060 Laptop 8 GB（本作业未使用 GPU）
-
----
-
-## 7. 可选扩展：GPU 加速
-
-若要把本作业升级为"算法改进 + 工程加速"双维度结果，可增加一步：
-
-- 用 **Numba CUDA** 手写中值/排序内核，把每级 `minimum/median/maximum_filter` 搬到 GPU；
-- 验证正确性（GPU 与 CPU 输出差值为 0），再测 **加速比随图像尺寸的变化**（512→4096）；
-- 这一部分正好呼应课程"可编程图形硬件"一章。
-
-当前版本未包含此部分，如需再做可在此基础上增量开发。
+- CPU: AMD Ryzen 7 8845H
