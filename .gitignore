@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# 结果文件体积不大，可以保留；若不想提交可取消下面两行注释
+# results/*.png
+# results/*.csv
