@@ -3,7 +3,7 @@
 > 图像处理与分析 · 课程大作业
 > 姓名：谢庆涛　　学号：20245638　　班级：人工智能2402
 >
-> 一句话概括：**复现经典的自适应中值滤波，用向量化方式高效实现，并与固定窗口中值滤波做系统性对比**。
+> 一句话概括：**自选题目：实现自适应中值滤波，用向量化的方式高效完成，并与固定窗口中值滤波做系统性对比**。
 
 ---
 
@@ -13,8 +13,7 @@
 https://github.com/DaoTongx/adaptive-median-filter
 ```
 
-> 仓库已按第 6 节的方式初始化，并**分两次提交**：第 1 次为固定窗口基线，第 2 次为
-> 自适应实现与实验，因此"代码修改"在提交历史中有可核对的痕迹（见 4.2）。
+> 仓库包含可直接运行的完整代码、实验脚本与全部结果文件，按第 6 节步骤即可复现文中的每一个数字。
 
 ---
 
@@ -55,9 +54,9 @@ $$z_{min} < z_{xy} < z_{max}$$
 
 两级判据的作用很直观：A 级决定"用什么替代"，B 级决定"要不要替代"。
 
-### 2.3 与基线方法的差异
+### 2.3 与对照方法的差异
 
-| | 固定窗口中值滤波（基线） | 自适应中值滤波（本作业） |
+| | 固定窗口中值滤波（对照） | 自适应中值滤波（本文） |
 |---|---|---|
 | 窗口大小 | 全图统一，调用前固定 | 逐像素从 3×3 起按需放大至 $S_{max}$ |
 | 对中心像素 | 无条件用中值替换 | 若中心非脉冲则原样保留 |
@@ -98,24 +97,24 @@ $$z_{min} < z_{xy} < z_{max}$$
 adaptive_median/
 ├── dataset.py            # 测试图像加载 + 椒盐/高斯噪声合成
 ├── metrics.py            # PSNR / SSIM / 带预热的计时器
-├── median_baseline.py    # 【before】固定窗口中值滤波（工程版 + 教学版）
-├── median_adaptive.py    # 【after】 自适应中值滤波（向量化版 + 逐像素版）
+├── median_baseline.py    # 对照方法：固定窗口中值滤波（工程版 + 教学版）
+├── median_adaptive.py    # 本文方法：自适应中值滤波（向量化版 + 逐像素版）
 ├── run_experiments.py    # 全矩阵实验，输出 results/*.csv
 ├── make_figures.py       # 生成报告用图，输出 results/*.png
 ├── requirements.txt
 └── results/              # 实验产物（CSV + PNG）
 ```
 
-### 4.2 改动前后对照
+### 4.2 核心实现
 
-**改动 1：新增自适应窗口逻辑**（`median_adaptive.py`，核心改动）
+**（1）自适应窗口与两级判据**（`median_adaptive.py`，核心部分）
 
 ```python
-# before —— median_baseline.py：窗口固定，无条件取中值
+# 对照方法 —— median_baseline.py：窗口固定，无条件取中值
 def median_fixed(img, k=3):
     return ndimage.median_filter(img, size=k, mode="reflect")
 
-# after —— median_adaptive.py：逐像素逐级放大窗口，两级判据决定输出
+# 本文实现 —— median_adaptive.py：逐像素逐级放大窗口，两级判据决定输出
 for r in range(1, r_max + 1):
     k = 2 * r + 1
     z_min = ndimage.minimum_filter(src, size=k, mode="reflect")
@@ -132,7 +131,7 @@ for r in range(1, r_max + 1):
     undecided &= ~pass_A                          # 已定案的像素不再参与
 ```
 
-**改动 2：把逐像素循环改为整图向量化**
+**（2）从逐像素循环到整图向量化**
 
 朴素写法要对每个像素、每个窗口半径分别求 min/max/median，在 512×512 上需
 `512×512×3×4 ≈ 300 万次` 小窗口运算，非常慢。本实现改为：
@@ -144,7 +143,7 @@ for r in range(1, r_max + 1):
 向量化版与逐像素版（`adaptive_median_naive`）在 $S_{max}=3,5,7$ 下输出**逐像素完全一致**
 （最大差值 0），说明优化没有改变算法语义。
 
-**改动 3：修正边界填充模式不一致的问题（调试记录）**
+**（3）统一边界填充方式（开发中的一处修正）**
 
 最初 `median_fixed` 用 `scipy.ndimage` 的 `mode="reflect"`，而教学版用
 `np.pad(mode="reflect")`，两者输出不一致。原因：
@@ -155,17 +154,17 @@ for r in range(1, r_max + 1):
 因此在 numpy 侧改用 `mode="symmetric"` 才与 scipy 对齐。修正后两种实现输出完全相同
 （差值 0），这一条也保证了后续所有对比建立在同一套边界约定上。
 
-### 4.3 基线说明
+### 4.3 对照方法说明
 
-`median_baseline.py` 提供两个版本：
+`median_baseline.py` 是对照组，提供两个版本：
 
-- `median_fixed()`：基于 `scipy.ndimage.median_filter`，作为性能与结果的工程基准；
+- `median_fixed()`：基于 `scipy.ndimage.median_filter`，作为性能与结果的工程参考；
 - `median_fixed_naive()`：基于滑动窗口视图的直观实现，用于对照与教学展示。
 
 二者在 $k=3,5,7$ 下输出完全一致。
 
-> 说明：自适应中值滤波是 Gonzalez & Woods《数字图像处理》中的经典算法，本作业的工作是
-> **复现该算法、给出高效向量化实现、并设计系统性评测**，而非提出新算法。
+> 说明：自适应中值滤波的基本思想来自 Gonzalez & Woods《数字图像处理》。本作业的选题是"椒盐噪声去除"，
+> 工作内容为**算法实现、向量化加速、以及一套可复现的评测实验**，不对算法本身的原创性作声明。
 
 ---
 
@@ -274,27 +273,17 @@ python run_experiments.py
 python make_figures.py
 ```
 
-推送到 GitHub：
+从零开始复现：
 
 ```bash
-git init
-git add dataset.py metrics.py median_baseline.py requirements.txt
-git commit -m "baseline: 固定窗口中值滤波"
-
-git add median_adaptive.py run_experiments.py make_figures.py .gitignore
-git commit -m "feat: 自适应中值滤波 + 向量化实现 + 实验评测"
-
-git branch -M main
-git remote add origin https://github.com/<你的用户名>/adaptive-median-filter.git
-git push -u origin main
+git clone https://github.com/DaoTongx/adaptive-median-filter.git
+cd adaptive-median-filter
+pip install -r requirements.txt
+python run_experiments.py     # 产出 results/*.csv
+python make_figures.py        # 产出 results/*.png
 ```
 
-**分两次提交的意义**：第 1 次提交就是"改动前"的基线，第 2 次提交是"改动后"。
-报告第 4 项可以直接给出：
-
-```bash
-git diff --stat HEAD~1 HEAD
-```
+全部实验在固定随机种子（seed=42）下运行，同样的环境与版本可得到完全相同的数值。
 
 ### 环境
 
