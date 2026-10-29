@@ -14,6 +14,7 @@ import pandas as pd
 import dataset
 from median_baseline import median_fixed
 from median_adaptive import adaptive_median
+from linear_filters import mean_filter, gaussian_filter
 from metrics import psnr, ssim, timeit
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
@@ -23,9 +24,14 @@ DENSITIES = [0.0, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50]
 
 # 方法名 -> (可调用对象, 说明)
 METHODS = {
+    # ---- 线性平滑（对照）----
+    "均值3x3": (lambda x: mean_filter(x, 3), "线性平滑：3x3 邻域平均"),
+    "高斯(σ=1.5)": (lambda x: gaussian_filter(x, 1.5), "线性平滑：高斯 sigma=1.5"),
+    # ---- 固定窗口中值（对照）----
     "固定3x3": (lambda x: median_fixed(x, 3), "固定窗口 k=3"),
     "固定5x5": (lambda x: median_fixed(x, 5), "固定窗口 k=5"),
     "固定7x7": (lambda x: median_fixed(x, 7), "固定窗口 k=7"),
+    # ---- 本文方法 ----
     "AMF(S=5)": (lambda x: adaptive_median(x, 5), "自适应，最大窗口 5"),
     "AMF(S=7)": (lambda x: adaptive_median(x, 7), "自适应，最大窗口 7"),
     "AMF(S=9)": (lambda x: adaptive_median(x, 9), "自适应，最大窗口 9"),

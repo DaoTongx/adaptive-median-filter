@@ -23,11 +23,17 @@ plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
 plt.rcParams["figure.dpi"] = 150
 
-ORDER = ["固定3x3", "固定5x5", "固定7x7", "AMF(S=5)", "AMF(S=7)", "AMF(S=9)"]
+ORDER = ["均值3x3", "高斯(σ=1.5)", "固定3x3", "固定5x5", "固定7x7",
+         "AMF(S=5)", "AMF(S=7)", "AMF(S=9)"]
 STYLE = {
+    # 线性平滑：点线 + 冷色调，容易和"中值类"区分
+    "均值3x3": dict(marker="x", ls=":", color="#2e8b57"),
+    "高斯(σ=1.5)": dict(marker="P", ls=":", color="#7b3fbf"),
+    # 固定窗口中值：虚线
     "固定3x3": dict(marker="o", ls="--", color="#888888"),
     "固定5x5": dict(marker="s", ls="--", color="#c08030"),
     "固定7x7": dict(marker="^", ls="--", color="#a03030"),
+    # 本文方法：实线
     "AMF(S=5)": dict(marker="D", ls="-", color="#2a7ab0"),
     "AMF(S=7)": dict(marker="v", ls="-", color="#1f5fa0"),
     "AMF(S=9)": dict(marker="*", ls="-", color="#0d3b66"),
@@ -45,15 +51,15 @@ def fig_curves():
         ("psnr", "PSNR (dB)", "fig1_psnr_vs_density.png", "a"),
         ("ssim", "SSIM", "fig2_ssim_vs_density.png", "b"),
     ]:
-        fig, ax = plt.subplots(figsize=(6.4, 4.2))
+        fig, ax = plt.subplots(figsize=(6.8, 4.4))
         for m in ORDER:
             sub = df[df.method == m].sort_values("density")
-            ax.plot(sub.density * 100, sub[metric], label=m, lw=1.8, ms=6, **STYLE[m])
+            ax.plot(sub.density * 100, sub[metric], label=m, lw=1.7, ms=5.5, **STYLE[m])
         ax.set_xlabel("椒盐噪声密度（%）")
         ax.set_ylabel(ylabel)
         ax.set_title(f"({tag}) 不同方法在测试图集上的平均 {ylabel}")
         ax.grid(alpha=0.3, ls=":")
-        ax.legend(fontsize=8, ncol=2, loc="lower left")
+        ax.legend(fontsize=7.2, ncol=2, loc="lower left")
         fig.tight_layout()
         fig.savefig(os.path.join(OUT, fname))
         plt.close(fig)
@@ -63,8 +69,9 @@ def fig_curves():
 def fig_runtime():
     rt = pd.read_csv(os.path.join(OUT, "runtime.csv"))
     rt = rt.set_index("method").loc[ORDER].reset_index()
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    colors = ["#888888", "#c08030", "#a03030", "#2a7ab0", "#1f5fa0", "#0d3b66"]
+    fig, ax = plt.subplots(figsize=(7.2, 3.8))
+    colors = ["#2e8b57", "#7b3fbf", "#888888", "#c08030", "#a03030",
+              "#2a7ab0", "#1f5fa0", "#0d3b66"]
     bars = ax.bar(rt.method, rt.time_s * 1000, color=colors, width=0.62)
     for b, v in zip(bars, rt.time_s * 1000):
         ax.text(b.get_x() + b.get_width() / 2, v + 6, f"{v:.0f}", ha="center", fontsize=8)
